@@ -37,38 +37,6 @@ create table Grades (
 );
 
 
-2. Процедура (добавление оценки студенту)
-
-CREATE OR REPLACE PROCEDURE AddGrade(
-    p_student_id IN INTEGER,
-    p_ved_id IN INTEGER,
-    p_grade_value IN INTEGER
-) IS
-    v_grade_id INTEGER;
-BEGIN
-    -- Проверяем, существует ли такая оценка в DirGrades
-    SELECT id INTO v_grade_id
-    FROM DirGrades
-    WHERE name_grade = p_grade_value
-    AND ROWNUM = 1;
-
-    INSERT INTO Grades (student_id, ved_id, id_grade)
-    VALUES (p_student_id, p_ved_id, v_grade_id);
-    
-    COMMIT;
-    DBMS_OUTPUT.PUT_LINE('Оценка успешно добавлена');
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Оценка с таким значением не найдена в справочнике');
-    WHEN OTHERS THEN
-        ROLLBACK;
-        RAISE;
-END AddGrade;
-/
-
-
-
-
 
 3. Функция (средний балл студента по всем предметам)
 CREATE OR REPLACE FUNCTION GetStudentAvgGrade(p_student_id INTEGER)
@@ -89,60 +57,8 @@ END GetStudentAvgGrade;
 Пример вызова
 SELECT GetStudentAvgGrade(1) FROM dual;
 
-4. Триггер (проверка, что студент зачислен на соответствующий курс)
-CREATE OR REPLACE TRIGGER trg_check_student_kurs
-BEFORE INSERT OR UPDATE ON Grades
-FOR EACH ROW
-DECLARE
-    v_student_kurs INTEGER;
-    v_vedomost_kurs INTEGER;
-BEGIN
-    -- Получаем курс студента через его группу
-    SELECT g.kurs INTO v_student_kurs
-    FROM Student s
-    JOIN Groups g ON s.id_group = g.id
-    WHERE s.id = :NEW.student_id;
-    
-    -- Получаем курс из ведомости
-    SELECT kurs INTO v_vedomost_kurs
-    FROM Vedomost
-    WHERE id = :NEW.ved_id;
-    
-    IF v_student_kurs != v_vedomost_kurs THEN
-        RAISE_APPLICATION_ERROR(-20002, 
-            'Курс студента (' || v_student_kurs || 
-            ') не соответствует курсу ведомости (' || v_vedomost_kurs || ')');
-    END IF;
-END trg_check_student_kurs;
-/
 
 
-5. Представление (успеваемость студентов с ФИО и названием группы)
-CREATE OR REPLACE VIEW StudentGradesView AS
-SELECT 
-    s.ID AS student_id,
-    s.i_name || ' ' || s.f_name || ' ' || NVL(s.o_name, '') AS full_name,
-    g.group_name,
-    s.sex,
-    dg.name_grade AS grade_value,
-    dg.discription AS grade_description,
-    v.semestr,
-    v.teacher,
-    v.discription AS vedomost_description
-FROM Student s
-JOIN Groups g ON s.id_group = g.id
-LEFT JOIN Grades gr ON s.id = gr.student_id
-LEFT JOIN DirGrades dg ON gr.id_grade = dg.id
-LEFT JOIN Vedomost v ON gr.ved_id = v.id;
-
-Пример исп.:
-SELECT * FROM StudentGradesView WHERE group_name = 'ИВТ-31';
-
-Процедура (AddGrade)
-Хранимая процедура для добавления оценки студенту. 
-Принимает ID студента, ID ведомости и числовое значение оценки (2-5). 
-Автоматически находит соответствующий ID в справочнике оценок и вставляет запись. 
-Обрабатывает ошибки (например, если такой оценки нет).
 
 
 
@@ -170,6 +86,29 @@ SELECT * FROM StudentGradesView WHERE group_name = 'ИВТ-31';
 Виртуальная таблица, объединяющая данные из 5 таблиц (Student, Groups, Grades, DirGrades, Vedomost). 
 Показывает полное ФИО студента, группу, пол, оценку с описанием, семестр, преподавателя. 
 Упрощает написание сложных отчётов — можно делать SELECT как с обычной таблицы.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
