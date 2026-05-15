@@ -1,3 +1,15 @@
+--DELETE FROM Grades;
+--DELETE FROM Vedomost;
+--DELETE FROM Student;
+--DELETE FROM DirGrades;
+--DELETE FROM Groups;
+--COMMIT;
+
+
+-- 29 31 30 -студ id student
+-- 21-2 22-3 23-4 24-5 name grade
+-- 11 12 10 id grades
+
 -- Функция: вычисление ср оценки для студента
 CREATE OR REPLACE FUNCTION GetStudentAvgGrade(p_student_id INTEGER)
 RETURN NUMBER
@@ -18,7 +30,7 @@ SELECT GetStudentAvgGrade(29) FROM dual;
 
 
 
--- ПРОЦЕДУРА: добавление студента с проверкой дубликатов
+-- Процедура: добавление студента с проверкой дубликатов
 CREATE OR REPLACE PROCEDURE AddStudent(
 
     p_i_name IN VARCHAR2,
@@ -70,3 +82,29 @@ BEGIN
     AddStudent('Иванов', 'Иван', 'Иванович', 'М', 1);
 END;
 /
+
+-- DROP TRIGGER check_grade_course_trigger;
+
+
+-- 5. Представление (успеваемость студентов с ФИО и названием группы)
+CREATE OR REPLACE VIEW StudentGradesView AS
+SELECT 
+    s.ID AS student_id,
+    s.i_name || ' ' || s.f_name || ' ' || NVL(s.o_name, '') AS full_name,
+    g.group_name,
+    s.sex,
+    dg.name_grade AS grade_value,
+    dg.discription AS grade_description,
+    v.semestr,
+    v.teacher,
+    v.discription AS vedomost_description
+FROM Student s
+JOIN Groups g ON s.id_group = g.id
+LEFT JOIN Grades gr ON s.id = gr.student_id
+LEFT JOIN DirGrades dg ON gr.id_grade = dg.id
+LEFT JOIN Vedomost v ON gr.ved_id = v.id;
+
+SELECT * FROM StudentGradesView WHERE group_name = 'ИВТ-1';
+
+
+
